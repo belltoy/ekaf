@@ -6,6 +6,8 @@
 -export([encode_sync/3, encode_async/3,
          encode_produce_request/3]).
 -export([decode_produce_response/1]).
+-export([encode_fetch_request/3, decode_fetch_response/1]).
+-export([encode_offset_request/3, decode_offset_response/1]).
 
 -export([encode_request/4,
          encode_bytes/1, encode_string/1, encode_array/1]).
@@ -49,6 +51,16 @@ encode_produce_request(CorrelationId, ClientId, Packet)->
 decode_produce_response(Packet)->
     ekaf_protocol_produce:decode(Packet).
 
+encode_fetch_request(CorrelationId, ClientId, Packet) ->
+    ekaf_protocol_fetch:encode(CorrelationId, ClientId, Packet).
+
+decode_fetch_response(Packet) ->
+    ekaf_protocol_fetch:decode(Packet).
+
+encode_offset_request(CorrelationId, ClientId, Packet) ->
+    ekaf_protocol_offset:encode(CorrelationId, ClientId, Packet).
+decode_offset_response(Packet) ->
+    ekaf_protocol_offset:decode(Packet).
 %%---------------------------------
 %% Decode metadata response
 %%---------------------------------

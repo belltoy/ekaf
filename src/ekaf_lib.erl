@@ -21,6 +21,7 @@
          handle_connected/2,
          handle_metadata_during_bootstrapping/2, handle_metadata_during_ready/3,
          handle_async_as_batch/3, handle_sync_as_batch/4,
+         handle_fetch/2, handle_offset/2,
          handle_inactivity_timeout/1,
 
          %% manipulating state
@@ -187,6 +188,43 @@ spawn_sync_as_batch(MessageSets, #ekaf_fsm{ socket = Socket, client_id = ClientI
                   %gen_tcp:send(Socket, Request)
           end).
 
+handle_fetch(TopicData, State) ->
+    CorrelationId = State#ekaf_fsm.cor_id,
+    ClientId = State#ekaf_fsm.client_id,
+    Request = ekaf_protocol:encode_fetch_request(CorrelationId, ClientId, TopicData),
+    case gen_tcp:send(State#ekaf_fsm.socket, Request) of
+        ok ->
+            Response = receive
+                {tcp, _Port, <<_CorrelationId:32, _/binary>> = Packet} ->
+                    ekaf_protocol:decode_fetch_response(Packet);
+                Packet ->
+                    {error, Packet}
+            end,
+            NewState = State#ekaf_fsm{cor_id = CorrelationId + 1},
+            {reply, Response, ready, NewState};
+        Reason ->
+            ?ERROR_MSG("~p", [Reason]),
+            {stop, Reason, State}
+    end.
+
+handle_offset(Data, State) ->
+    CorrelationId = State#ekaf_fsm.cor_id,
+    ClientId = State#ekaf_fsm.client_id,
+    Request = ekaf_protocol:encode_offset_request(CorrelationId, ClientId, Data),
+    case gen_tcp:send(State#ekaf_fsm.socket, Request) of
+        ok ->
+            Response = receive
+                           {tcp, _Port, <<_CorrelationId:32, _/binary>> = Packet} ->
+                               ekaf_protocol:decode_offset_response(Packet);
+                           Packet ->
+                               {error, Packet}
+                       end,
+            NewState = State#ekaf_fsm{cor_id = CorrelationId + 1},
+            {reply, Response, ready, NewState};
+        Reason->
+            ?ERROR_MSG("~p", [Reason]),
+            {stop, Reason, State}
+    end.
 
 handle_connected({metadata, Topic}, State)->
     CorrelationId = State#ekaf_fsm.cor_id,

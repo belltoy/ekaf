@@ -8,6 +8,9 @@
 -define(EKAF_DEFAULT_BUFFER_TTL                  , 5000).
 -define(EKAF_DEFAULT_PARTITION_STRATEGY          , ordered_round_robin).
 -define(EKAF_SYNC_TIMEOUT                        , 1000).
+-define(EKAF_MAX_MSG_SIZE                        , 1048576).
+-define(EKAF_LATEST_OFFSET_TIME                  , -1).
+-define(EKAF_EARLIEST_OFFSET_TIME                , -2).
 
 -define(EKAF_PACKET_IGNORE                       , 0).
 -define(EKAF_PACKET_ENCODE_METADATA              , 1).
@@ -17,7 +20,12 @@
 
 -define(API_VERSION                              , 0).
 -define(PRODUCE_REQUEST                          , 0).
+-define(FETCH_REQUEST                            , 1).
+-define(OFFSET_REQUEST                           , 2).
 -define(METADATA_REQUEST                         , 3).
+-define(OFFSET_COMMIT_REQUEST                    , 8).
+-define(OFFSET_FETCH_REQUEST                     , 9).
+-define(CONSUMER_METADATA_REQUEST                , 10).
 
 -define(EKAF_CONSTANT_REFRESH_EVERY_SEC          , <<"refresh_every_second">>).
 
@@ -77,15 +85,31 @@
 
 %% Requests
 -record(produce_request, { required_acks=0::kafka_word(), timeout=0::integer(), topics = []::list()}).
+-record(fetch_request, { replica_id=-1::integer(), max_wait_time=1000::integer(), min_bytes=1::integer(), topics = []::list()}).
+-record(offset_request, { replica_id=-1::integer(), topics = []::list()}).
 
 %% Responses
 -record(produce_response, { cor_id::kafka_word(), timeout=0::integer(), topics = []::list()}).
 -record(metadata_response, { cor_id = 0 :: kafka_correlation_id(), brokers = [], topics = [] }).
+-record(fetch_response, { cor_id::kafka_word(), timeout=0::integer(), topics = []::list()}).
+-record(offset_response, { cor_id::kafka_word(), topics = []::list()}).
 
 %% Other Records
 -record(broker, {node_id = 1 :: integer(), host = <<"localhost">> :: binary(), port = 9091 :: integer()}).
 -record(topic, {name:: binary(), error_code = 0:: integer(), partitions = []}).
--record(partition, {id=0::integer(), error_code=0:: integer(), leader=0:: integer(), replicas = []::list(), isrs = []::list(), message_sets_size=0::integer(), message_sets=[]::list()}).
+-record(partition, {id                     = 0::integer(),
+                    error_code             = 0:: integer(),
+                    leader                 = 0:: integer(),
+                    replicas               = []::list(),
+                    isrs                   = []::list(),
+                    highwater_mark_offset::integer(),
+                    message_sets_size      = 0::integer(),
+                    message_sets           = []::list(),
+                    fetch_offset           = 0::integer(),
+                    max_bytes              = ?EKAF_MAX_MSG_SIZE::integer(),
+                    time::integer(),
+                    max_number_of_offsets  = 1::integer(),
+                    offsets                = []::list()}).
 -record(message_set, {offset=0::integer(), size=0::integer(), messages=[]::list()}).
 -record(message, {crc=0::integer(), magicbyte=0::kafka_byte(), attributes=0::kafka_byte(), key = undefined::binary(), value::binary()}).
 -record(isr, {id::integer() }).

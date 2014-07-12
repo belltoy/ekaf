@@ -208,6 +208,10 @@ ready(buffer_size, _From, State) ->
 ready(info, _From, State) ->
     Reply = State,
     {reply, Reply, ready, State};
+ready({fetch, TopicData}, _From, State) ->
+    ekaf_lib:handle_fetch(TopicData, State);
+ready({offset, TopicData}, _From, State) ->
+    ekaf_lib:handle_offset(TopicData, State);
 ready(_Unknown, _From, State) ->
     Reply = ok,
     {reply, Reply, ready, State}.

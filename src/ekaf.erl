@@ -17,6 +17,7 @@
          publish/2, batch/2,
          produce_sync_batched/2, produce_async_batched/2,
          produce_sync/2, produce_async/2,
+         fetch/1, offset/1,
          metadata/1, metadata/2, info/1, info/2]).
 
 start() ->
@@ -65,6 +66,14 @@ metadata(Topic, Timeout)->
         _ ->
             gen_fsm:sync_send_event(Worker, {metadata, Topic}, Timeout)
     end.
+
+fetch(Topic) ->
+    Data = #fetch_request{topics = [Topic]},
+    ekaf_lib:common_sync(fetch, Topic, Data).
+
+offset(Topic) ->
+    Data = #offset_request{topics = [Topic]},
+    ekaf_lib:common_sync(offset, Topic, Data).
 
 info(Topic)->
     info(Topic,?EKAF_SYNC_TIMEOUT).

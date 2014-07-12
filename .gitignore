@@ -11,3 +11,4 @@ rel/ekafka/
 *.plt
 user_default.erl
 .DS_*
+erl_crash.dump
